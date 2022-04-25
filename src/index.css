@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://use.typekit.net/lwh6shx.css");
+@import url("https://fonts.googleapis.com/css?family=Exo:400,700");
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #00182c; 
+  background-image: url("https://www.bohemia.gallery/assets/images/staking-bg.png"); 
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  background-size: cover;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+h1, h2, h3, h4, .btn-primary {
+  font-family: garage-gothic, sans-serif;
+  font-weight: 700;  
+  font-style: normal;
+}
