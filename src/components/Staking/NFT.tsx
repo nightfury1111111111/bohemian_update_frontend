@@ -54,7 +54,7 @@ const NFT = ({
             <img className="absolute top-[25px] left-[55px] w-[240px]" src={nft.image} alt="" />
             <div className="absolute bottom-[150px] left-[65px] w-[220px] text-center">
               <h2 className="text-xl mb-[-2px]">{nft.name}</h2>
-              <h3 className="text-lg">15 $WOOP / DAY</h3>
+              {/* <h3 className="text-lg">15 $WOOP / DAY</h3> */}
             </div>                 
           </div>        
        

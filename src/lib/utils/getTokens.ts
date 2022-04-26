@@ -58,6 +58,8 @@ export const getTokens = async (
     }
   );
 
+  console.log("account nft :", account);
+
   const accounts = account.value;
   const tokens = [];
   for (let index = 0; index < accounts.length; index++) {
@@ -70,14 +72,17 @@ export const getTokens = async (
       });
   }
 
+  console.log("token :", tokens);
+
   const myArrayOfAccountsDatas = [];
   let tokenAmount = 0;
 
   for (let index = 0; index < tokens.length; index++) {
     const element = tokens[index];
-    if (
-      mint_list.find((x) => x.mint === element.mint.toString()) !== undefined
-    ) {
+    // if (
+    //   mint_list.find((x) => x.mint === element.mint.toString()) !== undefined
+    // ) 
+    {
       myArrayOfAccountsDatas.push({
         mint: element.mint,
         pubkey: element.pubkey,
@@ -89,7 +94,11 @@ export const getTokens = async (
     }
   }
 
+  console.log("myArrayOfAccountsDatas :", myArrayOfAccountsDatas);
+
   const result = await getNft(connection, myArrayOfAccountsDatas);
+
+  console.log("result :", result);
 
   if (result) return { result, tokenAmount };
 };

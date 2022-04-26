@@ -24,12 +24,19 @@ export default async function getNft(connection: any, tokens: any) {
         addressToBase.push(pda.toBase58());
       }
 
+      console.log("addressToBase", addressToBase);
+
       const args = connection._buildArgs([addressToBase], "root", "base64");
+
+      console.log("args :", args);
 
       const unsafeRes = await connection._rpcRequest(
         "getMultipleAccounts",
         args
       );
+
+      console.log("unsafeRes :", unsafeRes);
+
       if (unsafeRes.result.value) {
         const array = unsafeRes.result.value as AccountInfo<string[]>[];
         return { tokens, array };
@@ -37,11 +44,16 @@ export default async function getNft(connection: any, tokens: any) {
     };
 
     const result = await Promise.all(
-      chunks(tokens, 99).map((chunk) => letsdothis())
+      chunks(tokens, 99).map((chunk) => {
+        console.log("logs :", chunk);
+        return letsdothis();
+      })
     );
 
+    console.log("result2 :", result);
+
     let array;
-    if (result)
+    if (result) {
       array = result
         .map(
           (a) =>
@@ -49,6 +61,8 @@ export default async function getNft(connection: any, tokens: any) {
               if (!acc) {
                 return undefined;
               }
+
+              console.log("acc", acc);
 
               const { data, ...rest } = acc;
               const obj = {
@@ -59,28 +73,48 @@ export default async function getNft(connection: any, tokens: any) {
             }) as AccountInfo<Buffer>[]
         )
         .flat();
+    }
+
+    console.log("result.array :", array);
 
     if (array) {
-      const result: any = [];
+      const tmpResult: any = [];
       const lastResult: any = [];
       for (let index = 0; index < array.length; index++) {
         const e = array[index];
+        if (e?.data == undefined) continue;
 
         const a = decodeMetadata(e.data);
-        const f = await axios(a?.data.uri).then(({ data }: any) => data);
 
-        result.push({ ...f, ...a });
+        console.log("a :", a);
+        const f = await axios(a?.data.uri).then(({ data }: any) => data);
+        console.log("f :", f);
+
+        tmpResult.push({ ...f, ...a });
+      }
+
+      console.log("tmpResult", tmpResult);
+
+      const result:any = [];
+      for (let i = 0; i < tmpResult.length; i++) {
+        // if(tmpResult[i].name.indexOf("Guru"))
+        console.log(
+          tmpResult[i].name.indexOf("Guru") > -1 ||
+            tmpResult[i].name.indexOf("Bohemian")
+        );
       }
 
       for (let index = 0; index < tokens.length; index++) {
         const token = tokens[index];
 
-        result.map((element: any) => {
+        tmpResult.map((element: any) => {
           if (element.mint === token.mint)
             return lastResult.push({ ...token, ...element });
           return null;
         });
       }
+
+      console.log("lastresult :", lastResult);
 
       return lastResult;
     }

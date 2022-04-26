@@ -31,6 +31,7 @@ const StakingContent: FunctionComponent = () => {
   const [loadingInfos, setLoadingInfos] = useState(false);
   const [farm, setFarm]: [any, any] = useState(null);
   const [claimableCoins, setClaimableCoins] = useState(0);
+  const [updateShow, setUpdateShow] = useState(false);
 
   /**
    * Get all the information after the user connects the wallet
@@ -49,6 +50,10 @@ const StakingContent: FunctionComponent = () => {
     // eslint-disable-next-line
   }, [publicKey]);
 
+  useEffect(() => {
+    if (availableNFTs.length) setUpdateShow(true);
+  }, [availableNFTs]);
+
   /**
    * Refreshes all the information about the connected wallet
    */
@@ -66,6 +71,8 @@ const StakingContent: FunctionComponent = () => {
       connection,
       publicKey?.toString()
     );
+
+    console.log("currentNft :", currentNft);
 
     const currentStakingNft = await fetchVaultNFTs(
       connection,
@@ -96,6 +103,7 @@ const StakingContent: FunctionComponent = () => {
       };
     });
 
+    console.log("walletNFT :", walletNFTs);
     setAvailableNFTs(walletNFTs.concat(stakingNFTs));
 
     const farmer = await fetchFarmer(
@@ -103,15 +111,15 @@ const StakingContent: FunctionComponent = () => {
       wallet!.adapter as SignerWalletAdapter,
       farmId,
       publicKey!
-  );
+    );
 
-  setClaimableCoins(
+    setClaimableCoins(
       computeClaimableCoins(
-          farmer.account,
-          getEarningsPerDay(farmer.account, null),
-          currentStakingNft.length
+        farmer.account,
+        getEarningsPerDay(farmer.account, null),
+        currentStakingNft.length
       )
-  );
+    );
   };
 
   /**
@@ -129,8 +137,6 @@ const StakingContent: FunctionComponent = () => {
     );
 
     setFarm(farm);
-
-  
   };
 
   const handleStakeNFT = async (
@@ -203,7 +209,7 @@ const StakingContent: FunctionComponent = () => {
   return (
     <div>
       <StakingInfos
-        walletStakedNfts={availableNFTs.filter(x => x.isStaked).length}
+        walletStakedNfts={availableNFTs.filter((x) => x.isStaked).length}
         NftStaked={farm !== null ? farm?.gemsStaked.toNumber() : "N/A"}
         claimableCoins={claimableCoins}
         claim={async () => {
@@ -211,24 +217,23 @@ const StakingContent: FunctionComponent = () => {
         }}
       />
 
-      {(loadingInfos || loadingNft) && (
-        <div className="loading"></div>
-      )}
+      {(loadingInfos || loadingNft) && <div className="loading"></div>}
 
       <UnstakedNFT
         loading={loadingNft}
         title={"Staked"}
         NFTs={availableNFTs.filter((x) => x.isStaked)}
-        claimableCoins={claimableCoins / (
-            (availableNFTs.filter(x => x.isStaked).length === 0)
-                ? 1
-                : availableNFTs.filter(x => x.isStaked).length)
+        claimableCoins={
+          claimableCoins /
+          (availableNFTs.filter((x) => x.isStaked).length === 0
+            ? 1
+            : availableNFTs.filter((x) => x.isStaked).length)
         }
         callback={handleUnstakeNFT}
         isStaking={true}
         getStakingInfo={getStakingInfos}
-      />         
-         
+      />
+
       <ContentNFT
         loading={loadingNft}
         title={"Unstaked"}
@@ -237,13 +242,25 @@ const StakingContent: FunctionComponent = () => {
         claimableCoins={0}
         isStaking={false}
         getStakingInfo={getStakingInfos}
-        />
-      
-        
+      />
 
+      {updateShow && <StakingStyled>Update</StakingStyled>}
     </div>
   );
 };
 
-
 export default StakingContent;
+
+const StakingStyled = styled.div`
+  color: blueviolet;
+  background: coral;
+  font-size: 24px;
+  width: 200px;
+  margin: auto;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  cursor: pointer;
+`;
