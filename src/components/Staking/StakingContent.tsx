@@ -208,14 +208,14 @@ const StakingContent: FunctionComponent = () => {
 
   return (
     <div>
-      <StakingInfos
+      {/* <StakingInfos
         walletStakedNfts={availableNFTs.filter((x) => x.isStaked).length}
         NftStaked={farm !== null ? farm?.gemsStaked.toNumber() : "N/A"}
         claimableCoins={claimableCoins}
         claim={async () => {
           await handleClaim(stakingGlobals.farmId);
         }}
-      />
+      /> */}
 
       {(loadingInfos || loadingNft) && <div className="loading"></div>}
 
