@@ -8,16 +8,28 @@ const Staking: FunctionComponent = () => {
   const { connected } = useWallet();
 
   return (
-    <div className="max-w-screen-xl mx-auto pb-16">
-      <StakingStyled>
-        {connected ? (
-          <StakingContent />
-        ) : (
-          <div className="w-full text-center pt-10">         
-            <WalletMultiButton className="text-4xl" />       
-          </div>
-        )}
-      </StakingStyled>
+    <div className="relative">      
+      <video
+        className="w-full"
+        playsInline
+        autoPlay
+        muted
+        loop
+        poster="./bohemia-bg.jpg"
+      >
+      <source src="./hero.mp4" type="video/mp4" />
+      </video>
+      <div className="absolute top-12 w-full">
+        <StakingStyled>
+          {connected ? (
+            <StakingContent />
+          ) : (
+            <div className="w-full text-center pt-10">         
+              <WalletMultiButton className="text-4xl" />       
+            </div>
+          )}
+        </StakingStyled>
+      </div>
     </div>
   );
 };
