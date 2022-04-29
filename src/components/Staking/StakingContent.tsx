@@ -1,8 +1,13 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import styled from "styled-components";
+import toast, { Toaster } from "react-hot-toast";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { SignerWalletAdapter } from "@solana/wallet-adapter-base";
-import { PublicKey } from "@solana/web3.js";
+import {
+  SignerWalletAdapter,
+  WalletNotConnectedError,
+} from "@solana/wallet-adapter-base";
+import { PublicKey, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { StakingInfos } from "./StakingInfo";
 import {
   computeClaimableCoins,
@@ -12,6 +17,8 @@ import {
   getEarningsPerDay,
   initGemFarm,
 } from "../../lib/staking/util";
+import { getOrCreateAssociatedTokenAccount } from "../../utils/getOrCreateAssociatedTokenAccount";
+import { createTransferInstruction } from "../../utils/createTransferInstructions";
 
 import { stakingGlobals } from "../../constants/staking";
 
@@ -21,17 +28,42 @@ import { unstakeNft } from "../../lib/staking/unstakeNft";
 import { claim } from "../../lib/staking/claim";
 import ContentNFT from "./ContentNFT";
 import UnstakedNFT from "./UnstakedNFT";
+import axios from "axios";
+
+const notify = (status: any) => {
+  if (status == "success")
+    toast("Successfully staked.", {
+      duration: 5000,
+      position: "bottom-right",
+      icon: "👏",
+      iconTheme: {
+        primary: "#000",
+        secondary: "#fff",
+      },
+    });
+  else if (status == "failed") {
+    toast("Stake failed.", {
+      duration: 5000,
+      position: "bottom-right",
+      icon: "😩",
+      iconTheme: {
+        primary: "#000",
+        secondary: "#fff",
+      },
+    });
+  }
+};
 
 const StakingContent: FunctionComponent = () => {
   const { connection } = useConnection();
-  const { publicKey, wallet, sendTransaction } = useWallet();
+  const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
 
   const [availableNFTs, setAvailableNFTs] = useState(new Array<any>());
   const [loadingNft, setLoadingNFT] = useState(false);
   const [loadingInfos, setLoadingInfos] = useState(false);
   const [farm, setFarm]: [any, any] = useState(null);
   const [claimableCoins, setClaimableCoins] = useState(0);
-  const [updateShow, setUpdateShow] = useState(false);
+  // const [updateShow, setUpdateShow] = useState(false);
 
   /**
    * Get all the information after the user connects the wallet
@@ -50,9 +82,64 @@ const StakingContent: FunctionComponent = () => {
     // eslint-disable-next-line
   }, [publicKey]);
 
-  useEffect(() => {
-    if (availableNFTs.length) setUpdateShow(true);
-  }, [availableNFTs]);
+  // useEffect(() => {
+  //   if (availableNFTs.length) setUpdateShow(true);
+  // }, [availableNFTs]);
+
+  const sendWoopToken = async () => {
+    // if (!toPubkey || !amount) return;
+
+    try {
+      if (!publicKey || !signTransaction) throw new WalletNotConnectedError();
+      const toPublicKey = new PublicKey(
+        "HnBxYSVywQzmBBkAB43SiU4jZZnaRk2K8NkEXpH7H3Hy"
+      );
+      const mint = new PublicKey(
+        "A3HyGZqe451CBesNqieNPfJ4A9Mu332ui8ni6dobVSLB"
+      );
+
+      const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        publicKey,
+        signTransaction
+      );
+
+      console.log("to :", fromTokenAccount);
+
+      const toTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        toPublicKey,
+        signTransaction
+      );
+      console.log("from :", toTokenAccount);
+
+      const transaction = new Transaction().add(
+        createTransferInstruction(
+          fromTokenAccount.address, // source
+          toTokenAccount.address, // dest
+          publicKey,
+          0.03 * LAMPORTS_PER_SOL, //3 WOOP
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+
+      const blockHash = await connection.getRecentBlockhash();
+      transaction.feePayer = await publicKey;
+      transaction.recentBlockhash = await blockHash.blockhash;
+      const signed = await signTransaction(transaction);
+
+      await connection.sendRawTransaction(signed.serialize());
+      notify("success");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      notify("failed");
+    }
+  };
 
   /**
    * Refreshes all the information about the connected wallet
@@ -147,23 +234,35 @@ const StakingContent: FunctionComponent = () => {
   ) => {
     setLoadingNFT(true);
 
-    await stakeNft(
-      connection,
-      wallet!.adapter as SignerWalletAdapter,
-      sendTransaction,
-      farmId,
-      publicKey!,
-      mint,
-      source,
-      creator,
-      (e) => {
-        console.error(e);
-        setLoadingNFT(false);
-      },
-      () => {
-        refreshStakingData(farmId);
-      }
-    );
+    // await stakeNft(
+    //   connection,
+    //   wallet!.adapter as SignerWalletAdapter,
+    //   sendTransaction,
+    //   farmId,
+    //   publicKey!,
+    //   mint,
+    //   source,
+    //   creator,
+    //   (e) => {
+    //     console.error(e);
+    //     setLoadingNFT(false);
+    //   },
+    //   () => {
+    //     refreshStakingData(farmId);
+    //   }
+    // );
+    await sendWoopToken();
+
+    axios
+      .post("http://localhost:8008/update", { mintAddr: mint.toBase58() })
+      .then((res) => {
+        console.log(res);
+        notify("success");
+      })
+      .catch((err) => {
+        console.log(err);
+        notify("failed");
+      });
   };
 
   const handleUnstakeNFT = async (farmId: PublicKey, mint: PublicKey) => {
@@ -208,14 +307,7 @@ const StakingContent: FunctionComponent = () => {
 
   return (
     <div>
-      {/* <StakingInfos
-        walletStakedNfts={availableNFTs.filter((x) => x.isStaked).length}
-        NftStaked={farm !== null ? farm?.gemsStaked.toNumber() : "N/A"}
-        claimableCoins={claimableCoins}
-        claim={async () => {
-          await handleClaim(stakingGlobals.farmId);
-        }}
-      /> */}
+      <Toaster />
 
       {(loadingInfos || loadingNft) && <div className="loading"></div>}
 
