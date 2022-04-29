@@ -341,7 +341,7 @@ const StakingContent: FunctionComponent = () => {
     if (guruAddr) {
       await burnMasterGuru(guruAddr);
     } else {
-      notify("👏 noGuru");
+      notify("👏 You don't have any Guru NFT");
       return;
     }
     // stakeBohemian()
