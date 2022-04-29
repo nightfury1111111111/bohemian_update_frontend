@@ -244,23 +244,23 @@ const StakingContent: FunctionComponent = () => {
         getStakingInfo={getStakingInfos}
       />
 
-      {updateShow && <StakingStyled>Update</StakingStyled>}
+      {/* {updateShow && <StakingStyled>Update</StakingStyled>} */}
     </div>
   );
 };
 
 export default StakingContent;
 
-const StakingStyled = styled.div`
-  color: blueviolet;
-  background: coral;
-  font-size: 24px;
-  width: 200px;
-  margin: auto;
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 20px;
-  cursor: pointer;
-`;
+// const StakingStyled = styled.div`
+//   color: blueviolet;
+//   background: coral;
+//   font-size: 24px;
+//   width: 200px;
+//   margin: auto;
+//   height: 60px;
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+//   border-radius: 20px;
+//   cursor: pointer;
+// `;
