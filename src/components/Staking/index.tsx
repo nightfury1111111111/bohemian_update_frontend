@@ -15,7 +15,7 @@ const Staking: FunctionComponent = () => {
         autoPlay
         muted
         loop
-        poster="./bohemia-bg.jpg"
+        poster="./retreat.png"
       >
       <source src="./hero.mp4" type="video/mp4" />
       </video>
