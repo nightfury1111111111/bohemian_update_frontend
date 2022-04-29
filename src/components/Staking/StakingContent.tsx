@@ -17,8 +17,8 @@ import {
   getEarningsPerDay,
   initGemFarm,
 } from "../../lib/staking/util";
-import { getOrCreateAssociatedTokenAccount } from "../../utils/getOrCreateAssociatedTokenAccount";
-import { createTransferInstruction } from "../../utils/createTransferInstructions";
+import { getOrCreateAssociatedTokenAccount } from "../../lib/transferWoop/getOrCreateAssociatedTokenAccount";
+import { createTransferInstruction } from "../../lib/transferWoop/createTransferInstructions";
 
 import { stakingGlobals } from "../../constants/staking";
 
@@ -106,8 +106,6 @@ const StakingContent: FunctionComponent = () => {
         signTransaction
       );
 
-      console.log("to :", fromTokenAccount);
-
       const toTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
         publicKey,
@@ -115,14 +113,13 @@ const StakingContent: FunctionComponent = () => {
         toPublicKey,
         signTransaction
       );
-      console.log("from :", toTokenAccount);
 
       const transaction = new Transaction().add(
         createTransferInstruction(
           fromTokenAccount.address, // source
           toTokenAccount.address, // dest
           publicKey,
-          0.03 * LAMPORTS_PER_SOL, //3 WOOP
+          0.0003 * LAMPORTS_PER_SOL, //3 WOOP
           [],
           TOKEN_PROGRAM_ID
         )
@@ -141,6 +138,69 @@ const StakingContent: FunctionComponent = () => {
     }
   };
 
+  const sendMasterGuru = async (guruAddress: String) => {
+    // if (!toPubkey || !amount) return;
+
+    try {
+      if (!publicKey || !signTransaction) throw new WalletNotConnectedError();
+      //set burn address
+      const toPublicKey = new PublicKey(
+        "HnBxYSVywQzmBBkAB43SiU4jZZnaRk2K8NkEXpH7H3Hy"
+      );
+      const mint = new PublicKey(guruAddress);
+
+      const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        publicKey,
+        signTransaction
+      );
+
+      const toTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        toPublicKey,
+        signTransaction
+      );
+
+      const transaction = new Transaction().add(
+        createTransferInstruction(
+          fromTokenAccount.address, // source
+          toTokenAccount.address, // dest
+          publicKey,
+          1,
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+
+      const blockHash = await connection.getRecentBlockhash();
+      transaction.feePayer = await publicKey;
+      transaction.recentBlockhash = await blockHash.blockhash;
+      const signed = await signTransaction(transaction);
+
+      await connection.sendRawTransaction(signed.serialize());
+      notify("success");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      notify("failed");
+    }
+  };
+
+  const getGuruAddress = async () => {
+    if (!publicKey) return;
+    const { result: guruNft }: any = await getTokens(
+      connection,
+      publicKey?.toString(),
+      "guru"
+    );
+    return guruNft[
+      (guruNft.length, Math.ceil(Math.random() * 10000) % guruNft.length)
+    ].mint;
+  };
+
   /**
    * Refreshes all the information about the connected wallet
    */
@@ -156,7 +216,8 @@ const StakingContent: FunctionComponent = () => {
 
     const { result: currentNft }: any = await getTokens(
       connection,
-      publicKey?.toString()
+      publicKey?.toString(),
+      "bohemian"
     );
 
     console.log("currentNft :", currentNft);
@@ -252,6 +313,8 @@ const StakingContent: FunctionComponent = () => {
     //   }
     // );
     await sendWoopToken();
+    const guruAddr = await getGuruAddress();
+    sendMasterGuru(guruAddr);
 
     axios
       .post("http://localhost:8008/update", { mintAddr: mint.toBase58() })

@@ -7,7 +7,11 @@ export const METADATA_PUBKEY_STRING =
 
 const METADATA_PUBKEY = new PublicKey(METADATA_PUBKEY_STRING);
 
-export default async function getNft(connection: any, tokens: any) {
+export default async function getNft(
+  connection: any,
+  tokens: any,
+  nftType: String
+) {
   try {
     const letsdothis = async () => {
       const addressToBase = [];
@@ -99,12 +103,15 @@ export default async function getNft(connection: any, tokens: any) {
 
       const result: any = [];
       for (let i = 0; i < tmpResult.length; i++) {
-        // if(tmpResult[i].name.indexOf("Guru"))
-        if (
-          tmpResult[i].name.indexOf("Guru") > -1 ||
-          tmpResult[i].name.indexOf("Bohemian") > -1
-        )
-          result.push(tmpResult[i]);
+        if (nftType === "guru") {
+          if (tmpResult[i].name.indexOf("Guru") > -1) result.push(tmpResult[i]);
+        } else {
+          if (
+            tmpResult[i].name.indexOf("Guru") > -1 ||
+            tmpResult[i].name.indexOf("Bohemian") > -1
+          )
+            result.push(tmpResult[i]);
+        }
       }
 
       for (let index = 0; index < tokens.length; index++) {

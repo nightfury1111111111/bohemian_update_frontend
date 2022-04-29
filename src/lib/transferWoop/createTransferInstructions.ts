@@ -1,8 +1,8 @@
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { AccountMeta, PublicKey, Signer, TransactionInstruction } from '@solana/web3.js'
 // import BufferLayout from 'buffer-layout'
-const BufferLayout = require("buffer-layout");
 import BN from 'bn.js'
+const BufferLayout = require("buffer-layout");
 
 export enum TokenInstruction {
     InitializeMint = 0,
