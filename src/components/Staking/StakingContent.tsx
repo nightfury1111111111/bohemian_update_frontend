@@ -30,29 +30,45 @@ import ContentNFT from "./ContentNFT";
 import UnstakedNFT from "./UnstakedNFT";
 import axios from "axios";
 
+// const notify = (status: any) => {
+//   if (status == "success")
+//     toast("Successfully staked.", {
+//       duration: 5000,
+//       position: "bottom-right",
+//       icon: "👏",
+//       iconTheme: {
+//         primary: "#000",
+//         secondary: "#fff",
+//       },
+//     });
+//   else if (status == "failed") {
+//     toast("Stake failed.", {
+//       duration: 5000,
+//       position: "bottom-right",
+//       icon: "😩",
+//       iconTheme: {
+//         primary: "#000",
+//         secondary: "#fff",
+//       },
+//     });
+//   } else if (status === "noGuru") {
+//     toast("You don't have any NFT.", {
+//       duration: 5000,
+//       position: "bottom-right",
+//       icon: "😩",
+//       iconTheme: {
+//         primary: "#000",
+//         secondary: "#fff",
+//       },
+//     });
+//   }
+// };
 const notify = (status: any) => {
-  if (status == "success")
-    toast("Successfully staked.", {
-      duration: 5000,
-      position: "bottom-right",
-      icon: "👏",
-      iconTheme: {
-        primary: "#000",
-        secondary: "#fff",
-      },
-    });
-  else if (status == "failed") {
-    toast("Stake failed.", {
-      duration: 5000,
-      position: "bottom-right",
-      icon: "😩",
-      iconTheme: {
-        primary: "#000",
-        secondary: "#fff",
-      },
-    });
-  }
-};
+  toast(status, {
+    duration: 5000,
+    position: "bottom-right",
+  });
+}
 
 const StakingContent: FunctionComponent = () => {
   const { connection } = useConnection();
@@ -131,14 +147,14 @@ const StakingContent: FunctionComponent = () => {
       const signed = await signTransaction(transaction);
 
       await connection.sendRawTransaction(signed.serialize());
-      notify("success");
+      notify("👏 WOOP is successfully transferred to admin wallet");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      notify("failed");
+      notify("😩 WOOP transfer is failed");
     }
   };
 
-  const sendMasterGuru = async (guruAddress: String) => {
+  const burnMasterGuru = async (guruAddress: String) => {
     // if (!toPubkey || !amount) return;
 
     try {
@@ -182,10 +198,10 @@ const StakingContent: FunctionComponent = () => {
       const signed = await signTransaction(transaction);
 
       await connection.sendRawTransaction(signed.serialize());
-      notify("success");
+      notify("👏 Successfully burn Guru NFT");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      notify("failed");
+      notify("😩 Burn Guru NFT failed");
     }
   };
 
@@ -196,10 +212,18 @@ const StakingContent: FunctionComponent = () => {
       publicKey?.toString(),
       "guru"
     );
-    return guruNft[
-      (guruNft.length, Math.ceil(Math.random() * 10000) % guruNft.length)
-    ].mint;
+    if (guruNft.length) {
+      return guruNft[
+        (guruNft.length, Math.ceil(Math.random() * 10000) % guruNft.length)
+      ].mint;
+    } else {
+      return "";
+    }
   };
+
+  // const stakeBohemian=(bohemian)=>{
+
+  // };
 
   /**
    * Refreshes all the information about the connected wallet
@@ -314,17 +338,25 @@ const StakingContent: FunctionComponent = () => {
     // );
     await sendWoopToken();
     const guruAddr = await getGuruAddress();
-    sendMasterGuru(guruAddr);
+    if (guruAddr) {
+      await burnMasterGuru(guruAddr);
+    } else {
+      notify("👏 noGuru");
+      return;
+    }
+    // stakeBohemian()
+    // stakeBohemian(mint.toBase58());
+    burnMasterGuru(mint.toBase58());
 
     axios
       .post("http://localhost:8008/update", { mintAddr: mint.toBase58() })
       .then((res) => {
         console.log(res);
-        notify("success");
+        notify("👏 Metadata successfully updated");
       })
       .catch((err) => {
         console.log(err);
-        notify("failed");
+        notify("😩 Metadata update failed");// we have to save this to db
       });
   };
 
