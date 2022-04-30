@@ -41,26 +41,24 @@ const NFT = ({
       onClick={() => {
         callback(stakingGlobals.farmId, nft.mint);
       }}>        
-         <img src="./staked-frame.gif" alt="staked bohemian" />           
-         <img className="absolute top-[84px] left-[120px] w-[215px]" src={nft.image} alt="" />
-         <div className="absolute bottom-[38px] left-[80px] w-[220px] text-center">
-           <h2 className="text-ld mb-[-2px]">coins: {nftClaimableCoins.toFixed(4)}</h2>
-           <h3 className="text-md">{earningsPerDay} $WOOP / DAY</h3>
-         </div>             
+          <img src="./staked-frame.gif" alt="staked bohemian" />           
+          <img className="absolute top-[84px] left-[120px] w-[215px]" src={nft.image} alt="" />
+          <div className="absolute bottom-[34px] left-[135px] w-[120px] text-center">
+              <h2 className="text-xl mb-[6px] leading-none">234 hours 16 min to become Guru Master.</h2>         
+          </div>             
        </div>
       ) : (
-     
+      <div>
           <div className="relative inline-block w-[460px] cursor-pointer" onClick={() =>
             callback(stakingGlobals.farmId, nft.mint, nft.pubkey, nft.creator)
           }>        
             <img src="./unstaked-frame.gif" alt="unstaked bohemian" />           
             <img className="absolute top-[25px] left-[55px] w-[240px]" src={nft.image} alt="" />
-            <div className="absolute bottom-[150px] left-[65px] w-[220px] text-center">
-              <h2 className="text-xl mb-[-2px]">{nft.name}</h2>
-              {/* <h3 className="text-lg">15 $WOOP / DAY</h3> */}
+            <div className="absolute bottom-[150px] left-[85px] w-[180px] text-center">
+              <h2 className="text-xl mb-[6px] leading-none">Stake {nft.name} to become a Guru Master.</h2>              
             </div>                 
           </div>        
-       
+      </div>
       )}
     </div>
   );
