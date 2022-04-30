@@ -20,7 +20,8 @@ const ContentNFT = ({
   claimableCoins: number;
 }) => {
   return (
-    <div className="flex flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide mt-[80px]">
+  
+        <div className="flex flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide">
         {NFTs.map(
           (e: {
             name: string;
@@ -49,6 +50,8 @@ const ContentNFT = ({
           }
         )}
       </div>
+
+  
   );
 };
 

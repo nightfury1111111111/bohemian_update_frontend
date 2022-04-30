@@ -8,9 +8,9 @@ const Staking: FunctionComponent = () => {
   const { connected } = useWallet();
 
   return (
-    <div className="relative">      
+    <div className="relative ">      
       <video
-        className="w-full"
+        className="w-full h-screen"
         playsInline
         autoPlay
         muted
@@ -18,18 +18,21 @@ const Staking: FunctionComponent = () => {
         poster="./retreat.png"
       >
       <source src="./hero.mp4" type="video/mp4" />
-      </video>
-      <div className="absolute top-12 w-full">
+      </video>     
         <StakingStyled>
           {connected ? (
+          <div className="absolute bottom-12 w-full">
             <StakingContent />
+          </div>
           ) : (
-            <div className="w-full text-center pt-10">         
-              <WalletMultiButton className="text-4xl" />       
+            <div className="absolute top-12 w-full">
+              <div className="w-full text-center pt-10">         
+                <WalletMultiButton className="text-4xl" />       
+              </div>
             </div>
           )}
         </StakingStyled>
-      </div>
+     
     </div>
   );
 };
