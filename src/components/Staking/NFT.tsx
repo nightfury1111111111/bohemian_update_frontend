@@ -50,7 +50,7 @@ const NFT = ({
       ) : (
       <div>
           <div className="relative inline-block w-[460px] cursor-pointer" onClick={() =>
-            callback(stakingGlobals.farmId, nft.mint, nft.pubkey, nft.creator)
+            callback(stakingGlobals.vaultProgramId, nft.mint, nft.pubkey, nft.creator)
           }>        
             <img src="./unstaked-frame.gif" alt="unstaked bohemian" />           
             <img className="absolute top-[25px] left-[55px] w-[240px]" src={nft.image} alt="" />

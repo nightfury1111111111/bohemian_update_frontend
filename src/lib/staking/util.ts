@@ -13,6 +13,7 @@ import {
   GemBankClient,
   GemFarmClient,
   VaultClient,
+  findStakeNftPDA,
 } from "./sdk";
 import { getNFTMetadataForMany, INFT } from "../utils/INFT";
 
@@ -89,7 +90,7 @@ export const fetchVault = async (
   identity: PublicKey
 ): Promise<any> => {
   const vault = await initVault(connection, wallet);
-  const [vaultPDA] = await findNftVaultPDA(vaultId, identity);
+  const [vaultPDA] = await findNftVaultPDA();
   console.log("vault-pda : ", vaultPDA);
   try {
     const account = await vault!.fetchVaultAcc(vaultPDA);
@@ -130,6 +131,27 @@ export const fetchVaultNFTs = async (
   }
 
   return [];
+};
+
+export const fetchStakedNft = async (
+  connection: Connection,
+  wallet: SignerWalletAdapter,
+  identity: PublicKey,
+  vaultId: PublicKey
+) => {
+  const vault = await initVault(connection, wallet);
+  const [stakedNftPDA] = await findStakeNftPDA(
+    identity,
+    new PublicKey("9HevKiZe3BLhDE1ApXJyK1NsRAXpqRigwR66gS6FfmCX")
+  );
+  try {
+    const account = await vault!.fetchStakedNft(stakedNftPDA);
+
+    console.log("staked nft info :", account.mint.toBase58());
+    return { identity: identity.toBase58(), account };
+  } catch (e) {
+    return null;
+  }
 };
 
 export const getEarningsPerDay = (

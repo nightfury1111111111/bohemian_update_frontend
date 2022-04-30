@@ -2,34 +2,48 @@ import { FunctionComponent, useEffect, useState } from "react";
 import styled from "styled-components";
 import toast, { Toaster } from "react-hot-toast";
 import * as anchor from "@project-serum/anchor";
+import {Wallet} from "@project-serum/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { initVault, fetchVault } from "../../lib/staking/util";
 import {
   SignerWalletAdapter,
   WalletNotConnectedError,
 } from "@solana/wallet-adapter-base";
-import { PublicKey, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  PublicKey,
+  Transaction,
+  LAMPORTS_PER_SOL,
+  Connection,
+  clusterApiUrl,
+  SystemProgram,
+} from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { StakingInfos } from "./StakingInfo";
 import {
   computeClaimableCoins,
   fetchFarm,
   fetchFarmer,
-  fetchVaultNFTs,
+  fetchStakedNft,
   getEarningsPerDay,
   initGemFarm,
 } from "../../lib/staking/util";
 import { getOrCreateAssociatedTokenAccount } from "../../lib/transferWoop/getOrCreateAssociatedTokenAccount";
 import { createTransferInstruction } from "../../lib/transferWoop/createTransferInstructions";
 
+import { IDL as vaultIdl } from "../../lib/staking/sdk/types/nft_vault";
+
 import { stakingGlobals } from "../../constants/staking";
 
 import { getTokens } from "../../lib/utils/getTokens";
 import { lockNft } from "../../lib/staking/lockNft";
+import { stakeNft } from "../../lib/staking/stakeNft";
 import { unstakeNft } from "../../lib/staking/unstakeNft";
+import { claimNft } from "../../lib/staking/claimNft";
 import { claim } from "../../lib/staking/claim";
 import ContentNFT from "./ContentNFT";
 import UnstakedNFT from "./UnstakedNFT";
 import axios from "axios";
+import { VAULT_PROG_ID } from "../../lib/staking/sdk";
 
 // const notify = (status: any) => {
 //   if (status == "success")
@@ -250,23 +264,30 @@ const StakingContent: FunctionComponent = () => {
 
     console.log("currentNft :", currentNft);
 
-    const currentStakingNft = await fetchVaultNFTs(
+    // const currentStakingNft = await fetchVaultNFTs(
+    //   connection,
+    //   wallet!.adapter as SignerWalletAdapter,
+    //   publicKey,
+    //   farmId
+    // );
+
+    const currentStakingNft = await fetchStakedNft(
       connection,
       wallet!.adapter as SignerWalletAdapter,
       publicKey,
-      farmId
+      VAULT_PROG_ID
     );
 
-    const stakingNFTs = currentStakingNft?.map((e: any) => {
-      return {
-        name: e.externalMetadata.name,
-        pubkey: e.pubkey,
-        mint: e.mint,
-        image: e.externalMetadata.image,
-        isStaked: true,
-        farmer: e.farmer,
-      };
-    });
+    // const stakingNFTs = currentStakingNft?.map((e: any) => {
+    //   return {
+    //     name: e.externalMetadata.name,
+    //     pubkey: e.pubkey,
+    //     mint: e.mint,
+    //     image: e.externalMetadata.image,
+    //     isStaked: true,
+    //     farmer: e.farmer,
+    //   };
+    // });
 
     const walletNFTs = currentNft.map((e: any) => {
       return {
@@ -280,22 +301,23 @@ const StakingContent: FunctionComponent = () => {
     });
 
     console.log("walletNFT :", walletNFTs);
-    setAvailableNFTs(walletNFTs.concat(stakingNFTs));
+    setAvailableNFTs(walletNFTs);
+    // setAvailableNFTs(walletNFTs.concat(stakingNFTs));
 
-    const farmer = await fetchFarmer(
-      connection,
-      wallet!.adapter as SignerWalletAdapter,
-      farmId,
-      publicKey!
-    );
+    // const farmer = await fetchFarmer(
+    //   connection,
+    //   wallet!.adapter as SignerWalletAdapter,
+    //   farmId,
+    //   publicKey!
+    // );
 
-    setClaimableCoins(
-      computeClaimableCoins(
-        farmer.account,
-        getEarningsPerDay(farmer.account, null),
-        currentStakingNft.length
-      )
-    );
+    // setClaimableCoins(
+    //   computeClaimableCoins(
+    //     farmer.account,
+    //     getEarningsPerDay(farmer.account, null),
+    //     currentStakingNft.length
+    //   )
+    // );
   };
 
   /**
@@ -316,18 +338,37 @@ const StakingContent: FunctionComponent = () => {
   };
 
   const handleStakeNFT = async (
-    farmId: PublicKey,
+    // farmId: PublicKey,
+    vaultId: PublicKey,
     mint: PublicKey,
     source: PublicKey,
     creator: PublicKey
   ) => {
     setLoadingNFT(true);
 
+    // await stakeNft(
+    //   connection,
+    //   wallet!.adapter as SignerWalletAdapter,
+    //   sendTransaction,
+    //   farmId,
+    //   publicKey!,
+    //   mint,
+    //   source,
+    //   creator,
+    //   (e) => {
+    //     console.error(e);
+    //     setLoadingNFT(false);
+    //   },
+    //   () => {
+    //     refreshStakingData(farmId);
+    //   }
+    // );
+
     await lockNft(
       connection,
       wallet!.adapter as SignerWalletAdapter,
       sendTransaction,
-      farmId,
+      vaultId,
       publicKey!,
       mint,
       source,
@@ -337,11 +378,10 @@ const StakingContent: FunctionComponent = () => {
         setLoadingNFT(false);
       },
       () => {
-        refreshStakingData(farmId);
+        refreshStakingData(vaultId);
       }
     );
 
-    
     // await sendWoopToken();
     // const guruAddr = await getGuruAddress();
     // if (guruAddr) {
@@ -355,7 +395,7 @@ const StakingContent: FunctionComponent = () => {
     // burnMasterGuru(mint.toBase58());
 
     // axios
-    //   .post("http://localhost:8008/update", { mintAddr: mint.toBase58() })
+    //   .post("https://retreat-backend.bohemia.gallery/update", { mintAddr: mint.toBase58() })
     //   .then((res) => {
     //     console.log(res);
     //     notify("👏 Metadata successfully updated");
@@ -366,23 +406,41 @@ const StakingContent: FunctionComponent = () => {
     //   });
   };
 
-  const handleUnstakeNFT = async (farmId: PublicKey, mint: PublicKey) => {
+  const handleUnstakeNFT = async () => {
+  // const handleUnstakeNFT = async (vaultId: PublicKey, mint: PublicKey) => {
     setLoadingNFT(true);
 
-    await unstakeNft(
+    // await unstakeNft(
+    //   connection,
+    //   wallet!.adapter as SignerWalletAdapter,
+    //   sendTransaction,
+    //   farmId,
+    //   publicKey!,
+    //   mint,
+    //   availableNFTs.filter((x) => x.isStaked === true).length,
+    //   (e) => {
+    //     console.error(e);
+    //     setLoadingNFT(false);
+    //   },
+    //   () => {
+    //     refreshStakingData(farmId);
+    //   }
+    // );
+
+    await claimNft(
       connection,
       wallet!.adapter as SignerWalletAdapter,
       sendTransaction,
-      farmId,
+      VAULT_PROG_ID,
       publicKey!,
-      mint,
-      availableNFTs.filter((x) => x.isStaked === true).length,
+      new PublicKey("9HevKiZe3BLhDE1ApXJyK1NsRAXpqRigwR66gS6FfmCX"),
+      // availableNFTs.filter((x) => x.isStaked === true).length,
       (e) => {
         console.error(e);
         setLoadingNFT(false);
       },
       () => {
-        refreshStakingData(farmId);
+        refreshStakingData(VAULT_PROG_ID);
       }
     );
   };
@@ -404,6 +462,45 @@ const StakingContent: FunctionComponent = () => {
         refreshStakingData(farmId);
       }
     );
+  };
+
+  const WALLET = [
+    19, 50, 28, 200, 250, 27, 129, 153, 59, 243, 4, 225, 133, 17, 223, 24, 147,
+    112, 77, 72, 60, 210, 152, 84, 6, 156, 138, 238, 20, 134, 40, 34, 28, 71,
+    248, 199, 198, 87, 146, 144, 1, 15, 71, 23, 86, 88, 245, 212, 63, 69, 88, 3,
+    179, 119, 97, 217, 170, 168, 119, 90, 27, 5, 229, 110,
+  ];
+
+  const handleTest = async () => {
+    const network = clusterApiUrl("devnet");
+    const connection = new Connection(network);
+    const walletKey = anchor.web3.Keypair.fromSecretKey(Uint8Array.from(WALLET));
+    // const walletK = new Wallet(wallet);
+    const provider = new anchor.Provider(
+      connection,
+      // @ts-ignore
+      wallet!.adapter as SignerWalletAdapter,
+      anchor.Provider.defaultOptions()
+    );
+    const program = new anchor.Program(
+      vaultIdl,
+      "DXtJ91iQwMPwr6fkVGkfaiiTmy2aNVdBxiBiw4ttGC4p",
+      provider
+    );
+
+    const [programPDA, programBump] = await PublicKey.findProgramAddress(
+      [Buffer.from("nft-vault")],
+      new PublicKey("DXtJ91iQwMPwr6fkVGkfaiiTmy2aNVdBxiBiw4ttGC4p")
+    );
+
+    await program.rpc.initialize({
+      accounts: {
+        authority: publicKey!,
+        nftVault: programPDA,
+        systemProgram: SystemProgram.programId,
+      },
+      signers: [walletKey],
+    });
   };
 
   return (
@@ -437,23 +534,25 @@ const StakingContent: FunctionComponent = () => {
         getStakingInfo={getStakingInfos}
       />
 
-      {/* {updateShow && <StakingStyled>Update</StakingStyled>} */}
+      {/* <StakingStyled onClick={handleTest}>aaaaaaaaa</StakingStyled> */}
+      <StakingStyled onClick={handleUnstakeNFT}>aaaaaaaaa</StakingStyled>
     </div>
   );
 };
 
 export default StakingContent;
 
-// const StakingStyled = styled.div`
-//   color: blueviolet;
-//   background: coral;
-//   font-size: 24px;
-//   width: 200px;
-//   margin: auto;
-//   height: 60px;
-//   display: flex;
-//   justify-content: center;
-//   align-items: center;
-//   border-radius: 20px;
-//   cursor: pointer;
-// `;
+const StakingStyled = styled.div`
+  color: blueviolet;
+  background: coral;
+  font-size: 24px;
+  width: 200px;
+  margin: auto;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  cursor: pointer;
+`;
+

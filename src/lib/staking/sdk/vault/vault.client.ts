@@ -10,6 +10,7 @@ import {
 import { AccountUtils } from "../gem-common";
 import { NftVault } from "../types/nft_vault";
 import { isKp } from "../gem-common";
+import { findNftVaultPDA, findStakeNftPDA, findAtaForMint } from "./vault.pda";
 
 export class VaultClient extends AccountUtils {
   // @ts-ignore
@@ -47,30 +48,18 @@ export class VaultClient extends AccountUtils {
     );
   }
 
-  async initVault(
-    authority: PublicKey | Keypair,
-    nftVault: PublicKey | Keypair
-  ) {
-    // const [farmAuth, farmAuthBump] = await findFarmAuthorityPDA(farm.publicKey);
-    // const [farmTreasury, farmTreasuryBump] = await findFarmTreasuryPDA(
-    //   farm.publicKey
-    // );
-    // const [rewardAPot, rewardAPotBump] = await findRewardsPotPDA(
-    //   farm.publicKey,
-    //   rewardAMint
-    // );
-    // const [rewardBPot, rewardBPotBump] = await findRewardsPotPDA(
-    //   farm.publicKey,
-    //   rewardBMint
-    // );
-
+  //we don't use this function
+  async initVault(authority: PublicKey | Keypair, vaultId: PublicKey) {
+    const [vaultAddr, _] = await findNftVaultPDA();
     const signers = [];
     if (isKp(authority)) signers.push(<Keypair>authority);
+
+    console.log("signers : ", isKp(authority));
 
     const ix = await this.vaultProgram.instruction.initialize({
       accounts: {
         authority,
-        nftVault,
+        nftVault: vaultAddr,
         systemProgram: SystemProgram.programId,
       },
       signers,
@@ -81,7 +70,60 @@ export class VaultClient extends AccountUtils {
     };
   }
 
-  async fetchVaultAcc(farmer: PublicKey) {
-    return this.vaultProgram.account.nftVault.fetch(farmer);
+  async stakeNftToVault(staker: PublicKey, mint: PublicKey) {
+    const [nftVault, _1] = await findNftVaultPDA();
+    const [stakeNft, _2] = await findStakeNftPDA(staker, mint);
+    const [nftVaultAta, _3] = await findAtaForMint(nftVault, mint);
+
+    const [stakerAta, _] = await findAtaForMint(staker, mint);
+
+    const ix = await this.vaultProgram.instruction.stake({
+      accounts: {
+        staker,
+        stakeNft,
+        stakerAta,
+        tokenMint: mint,
+        nftVaultAta,
+        nftVault,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      },
+    });
+
+    return { ix };
+  }
+  async unStakeNftToVault(staker: PublicKey, mint: PublicKey) {
+    const [nftVault, _1] = await findNftVaultPDA();
+    const [stakeNft, _2] = await findStakeNftPDA(staker, mint);
+    const [nftVaultAta, _3] = await findAtaForMint(nftVault, mint);
+
+    const [stakerAta, _] = await findAtaForMint(staker, mint);
+
+    const ix = await this.vaultProgram.instruction.unstake({
+      accounts: {
+        staker,
+        stakeNft,
+        stakerAta,
+        tokenMint: mint,
+        nftVaultAta,
+        nftVault,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      },
+    });
+
+    return { ix };
+  }
+
+  async fetchVaultAcc(staker: PublicKey) {
+    return this.vaultProgram.account.nftVault.fetch(staker);
+  }
+
+  async fetchStakedNft(staker: PublicKey) {
+    return this.vaultProgram.account.stakeNft.fetch(staker);
   }
 }

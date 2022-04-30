@@ -4,15 +4,15 @@ import { SignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { programs } from "@metaplex/js";
 import BN from "bn.js";
 
-export const lockNft = async (
+export const claimNft = async (
   connection: Connection,
   wallet: SignerWalletAdapter,
   sendTransaction: Function,
   vaultId: PublicKey,
   identity: PublicKey,
   mint: PublicKey,
-  source: PublicKey,
-  creator: PublicKey,
+  // source: PublicKey,
+  // creator: PublicKey,
   onError: (e: Error) => void,
   onFinish: (txid: string) => void
 ) => {
@@ -27,10 +27,10 @@ export const lockNft = async (
     txs.add(ixCreateVault);
   }
 
-  const { ix: ixStakeNft } = await vault!.stakeNftToVault(identity, mint);
+  const { ix: ixStakeNft } = await vault!.unStakeNftToVault(identity, mint);
   txs.add(ixStakeNft);
 
-  console.log("transaction - stake",txs)
+  console.log("transaction - stake", txs);
 
   // const farm = await fetchFarm(connection, wallet, farmId);
 
