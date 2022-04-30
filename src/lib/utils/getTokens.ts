@@ -49,7 +49,8 @@ export const programIds = () => {
 // user accounts are updated via ws subscription
 export const getTokens = async (
   connection: Connection,
-  publicKeyBase64: String
+  publicKeyBase64: String,
+  nftType: String
 ) => {
   const account = await connection.getParsedTokenAccountsByOwner(
     new PublicKey(publicKeyBase64),
@@ -79,10 +80,17 @@ export const getTokens = async (
 
   for (let index = 0; index < tokens.length; index++) {
     const element = tokens[index];
-    // if (
-    //   mint_list.find((x) => x.mint === element.mint.toString()) !== undefined
-    // ) 
-    {
+    if (nftType === "bohemian") {
+      if (
+        mint_list.find((x) => x.mint === element.mint.toString()) !== undefined
+      ) {
+        myArrayOfAccountsDatas.push({
+          mint: element.mint,
+          pubkey: element.pubkey,
+          amount: element.amount,
+        });
+      }
+    } else if (nftType === "guru") {
       myArrayOfAccountsDatas.push({
         mint: element.mint,
         pubkey: element.pubkey,
@@ -96,7 +104,7 @@ export const getTokens = async (
 
   console.log("myArrayOfAccountsDatas :", myArrayOfAccountsDatas);
 
-  const result = await getNft(connection, myArrayOfAccountsDatas);
+  const result = await getNft(connection, myArrayOfAccountsDatas, nftType);
 
   console.log("result :", result);
 

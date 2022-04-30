@@ -1,8 +1,13 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import styled from "styled-components";
+import toast, { Toaster } from "react-hot-toast";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { SignerWalletAdapter } from "@solana/wallet-adapter-base";
-import { PublicKey } from "@solana/web3.js";
+import {
+  SignerWalletAdapter,
+  WalletNotConnectedError,
+} from "@solana/wallet-adapter-base";
+import { PublicKey, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { StakingInfos } from "./StakingInfo";
 import {
   computeClaimableCoins,
@@ -12,6 +17,8 @@ import {
   getEarningsPerDay,
   initGemFarm,
 } from "../../lib/staking/util";
+import { getOrCreateAssociatedTokenAccount } from "../../lib/transferWoop/getOrCreateAssociatedTokenAccount";
+import { createTransferInstruction } from "../../lib/transferWoop/createTransferInstructions";
 
 import { stakingGlobals } from "../../constants/staking";
 
@@ -21,17 +28,58 @@ import { unstakeNft } from "../../lib/staking/unstakeNft";
 import { claim } from "../../lib/staking/claim";
 import ContentNFT from "./ContentNFT";
 import UnstakedNFT from "./UnstakedNFT";
+import axios from "axios";
+
+// const notify = (status: any) => {
+//   if (status == "success")
+//     toast("Successfully staked.", {
+//       duration: 5000,
+//       position: "bottom-right",
+//       icon: "👏",
+//       iconTheme: {
+//         primary: "#000",
+//         secondary: "#fff",
+//       },
+//     });
+//   else if (status == "failed") {
+//     toast("Stake failed.", {
+//       duration: 5000,
+//       position: "bottom-right",
+//       icon: "😩",
+//       iconTheme: {
+//         primary: "#000",
+//         secondary: "#fff",
+//       },
+//     });
+//   } else if (status === "noGuru") {
+//     toast("You don't have any NFT.", {
+//       duration: 5000,
+//       position: "bottom-right",
+//       icon: "😩",
+//       iconTheme: {
+//         primary: "#000",
+//         secondary: "#fff",
+//       },
+//     });
+//   }
+// };
+const notify = (status: any) => {
+  toast(status, {
+    duration: 5000,
+    position: "bottom-right",
+  });
+}
 
 const StakingContent: FunctionComponent = () => {
   const { connection } = useConnection();
-  const { publicKey, wallet, sendTransaction } = useWallet();
+  const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
 
   const [availableNFTs, setAvailableNFTs] = useState(new Array<any>());
   const [loadingNft, setLoadingNFT] = useState(false);
   const [loadingInfos, setLoadingInfos] = useState(false);
   const [farm, setFarm]: [any, any] = useState(null);
   const [claimableCoins, setClaimableCoins] = useState(0);
-  const [updateShow, setUpdateShow] = useState(false);
+  // const [updateShow, setUpdateShow] = useState(false);
 
   /**
    * Get all the information after the user connects the wallet
@@ -50,9 +98,132 @@ const StakingContent: FunctionComponent = () => {
     // eslint-disable-next-line
   }, [publicKey]);
 
-  useEffect(() => {
-    if (availableNFTs.length) setUpdateShow(true);
-  }, [availableNFTs]);
+  // useEffect(() => {
+  //   if (availableNFTs.length) setUpdateShow(true);
+  // }, [availableNFTs]);
+
+  const sendWoopToken = async () => {
+    // if (!toPubkey || !amount) return;
+
+    try {
+      if (!publicKey || !signTransaction) throw new WalletNotConnectedError();
+      const toPublicKey = new PublicKey(
+        "HnBxYSVywQzmBBkAB43SiU4jZZnaRk2K8NkEXpH7H3Hy"
+      );
+      const mint = new PublicKey(
+        "A3HyGZqe451CBesNqieNPfJ4A9Mu332ui8ni6dobVSLB"
+      );
+
+      const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        publicKey,
+        signTransaction
+      );
+
+      const toTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        toPublicKey,
+        signTransaction
+      );
+
+      const transaction = new Transaction().add(
+        createTransferInstruction(
+          fromTokenAccount.address, // source
+          toTokenAccount.address, // dest
+          publicKey,
+          0.0003 * LAMPORTS_PER_SOL, //3 WOOP
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+
+      const blockHash = await connection.getRecentBlockhash();
+      transaction.feePayer = await publicKey;
+      transaction.recentBlockhash = await blockHash.blockhash;
+      const signed = await signTransaction(transaction);
+
+      await connection.sendRawTransaction(signed.serialize());
+      notify("👏 WOOP is successfully transferred to admin wallet");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      notify("😩 WOOP transfer is failed");
+    }
+  };
+
+  const burnMasterGuru = async (guruAddress: String) => {
+    // if (!toPubkey || !amount) return;
+
+    try {
+      if (!publicKey || !signTransaction) throw new WalletNotConnectedError();
+      //set burn address
+      const toPublicKey = new PublicKey(
+        "HnBxYSVywQzmBBkAB43SiU4jZZnaRk2K8NkEXpH7H3Hy"
+      );
+      const mint = new PublicKey(guruAddress);
+
+      const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        publicKey,
+        signTransaction
+      );
+
+      const toTokenAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        publicKey,
+        mint,
+        toPublicKey,
+        signTransaction
+      );
+
+      const transaction = new Transaction().add(
+        createTransferInstruction(
+          fromTokenAccount.address, // source
+          toTokenAccount.address, // dest
+          publicKey,
+          1,
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+
+      const blockHash = await connection.getRecentBlockhash();
+      transaction.feePayer = await publicKey;
+      transaction.recentBlockhash = await blockHash.blockhash;
+      const signed = await signTransaction(transaction);
+
+      await connection.sendRawTransaction(signed.serialize());
+      notify("👏 Successfully burn Guru NFT");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      notify("😩 Burn Guru NFT failed");
+    }
+  };
+
+  const getGuruAddress = async () => {
+    if (!publicKey) return;
+    const { result: guruNft }: any = await getTokens(
+      connection,
+      publicKey?.toString(),
+      "guru"
+    );
+    if (guruNft.length) {
+      return guruNft[
+        (guruNft.length, Math.ceil(Math.random() * 10000) % guruNft.length)
+      ].mint;
+    } else {
+      return "";
+    }
+  };
+
+  // const stakeBohemian=(bohemian)=>{
+
+  // };
 
   /**
    * Refreshes all the information about the connected wallet
@@ -69,7 +240,8 @@ const StakingContent: FunctionComponent = () => {
 
     const { result: currentNft }: any = await getTokens(
       connection,
-      publicKey?.toString()
+      publicKey?.toString(),
+      "bohemian"
     );
 
     console.log("currentNft :", currentNft);
@@ -147,23 +319,45 @@ const StakingContent: FunctionComponent = () => {
   ) => {
     setLoadingNFT(true);
 
-    await stakeNft(
-      connection,
-      wallet!.adapter as SignerWalletAdapter,
-      sendTransaction,
-      farmId,
-      publicKey!,
-      mint,
-      source,
-      creator,
-      (e) => {
-        console.error(e);
-        setLoadingNFT(false);
-      },
-      () => {
-        refreshStakingData(farmId);
-      }
-    );
+    // await stakeNft(
+    //   connection,
+    //   wallet!.adapter as SignerWalletAdapter,
+    //   sendTransaction,
+    //   farmId,
+    //   publicKey!,
+    //   mint,
+    //   source,
+    //   creator,
+    //   (e) => {
+    //     console.error(e);
+    //     setLoadingNFT(false);
+    //   },
+    //   () => {
+    //     refreshStakingData(farmId);
+    //   }
+    // );
+    await sendWoopToken();
+    const guruAddr = await getGuruAddress();
+    if (guruAddr) {
+      await burnMasterGuru(guruAddr);
+    } else {
+      notify("👏 You don't have any Guru NFT");
+      return;
+    }
+    // stakeBohemian()
+    // stakeBohemian(mint.toBase58());
+    burnMasterGuru(mint.toBase58());
+
+    axios
+      .post("http://localhost:8008/update", { mintAddr: mint.toBase58() })
+      .then((res) => {
+        console.log(res);
+        notify("👏 Metadata successfully updated");
+      })
+      .catch((err) => {
+        console.log(err);
+        notify("😩 Metadata update failed");// we have to save this to db
+      });
   };
 
   const handleUnstakeNFT = async (farmId: PublicKey, mint: PublicKey) => {
@@ -208,18 +402,11 @@ const StakingContent: FunctionComponent = () => {
 
   return (
     <div>
-      {/* <StakingInfos
-        walletStakedNfts={availableNFTs.filter((x) => x.isStaked).length}
-        NftStaked={farm !== null ? farm?.gemsStaked.toNumber() : "N/A"}
-        claimableCoins={claimableCoins}
-        claim={async () => {
-          await handleClaim(stakingGlobals.farmId);
-        }}
-      /> */}
+      <Toaster />
 
       {(loadingInfos || loadingNft) && <div className="loading"></div>}
 
-      <UnstakedNFT
+      {/* <UnstakedNFT
         loading={loadingNft}
         title={"Staked"}
         NFTs={availableNFTs.filter((x) => x.isStaked)}
@@ -232,7 +419,7 @@ const StakingContent: FunctionComponent = () => {
         callback={handleUnstakeNFT}
         isStaking={true}
         getStakingInfo={getStakingInfos}
-      />
+      /> */}
 
       <ContentNFT
         loading={loadingNft}
@@ -244,23 +431,23 @@ const StakingContent: FunctionComponent = () => {
         getStakingInfo={getStakingInfos}
       />
 
-      {updateShow && <StakingStyled>Update</StakingStyled>}
+      {/* {updateShow && <StakingStyled>Update</StakingStyled>} */}
     </div>
   );
 };
 
 export default StakingContent;
 
-const StakingStyled = styled.div`
-  color: blueviolet;
-  background: coral;
-  font-size: 24px;
-  width: 200px;
-  margin: auto;
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 20px;
-  cursor: pointer;
-`;
+// const StakingStyled = styled.div`
+//   color: blueviolet;
+//   background: coral;
+//   font-size: 24px;
+//   width: 200px;
+//   margin: auto;
+//   height: 60px;
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+//   border-radius: 20px;
+//   cursor: pointer;
+// `;

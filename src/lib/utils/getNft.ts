@@ -7,7 +7,11 @@ export const METADATA_PUBKEY_STRING =
 
 const METADATA_PUBKEY = new PublicKey(METADATA_PUBKEY_STRING);
 
-export default async function getNft(connection: any, tokens: any) {
+export default async function getNft(
+  connection: any,
+  tokens: any,
+  nftType: String
+) {
   try {
     const letsdothis = async () => {
       const addressToBase = [];
@@ -82,11 +86,13 @@ export default async function getNft(connection: any, tokens: any) {
       const lastResult: any = [];
       for (let index = 0; index < array.length; index++) {
         const e = array[index];
-        if (e?.data == undefined) continue;
+        if (!e?.data) continue;
 
         const a = decodeMetadata(e.data);
 
         console.log("a :", a);
+
+        if (!a?.data?.uri) continue;
         const f = await axios(a?.data.uri).then(({ data }: any) => data);
         console.log("f :", f);
 
@@ -95,19 +101,23 @@ export default async function getNft(connection: any, tokens: any) {
 
       console.log("tmpResult", tmpResult);
 
-      const result:any = [];
+      const result: any = [];
       for (let i = 0; i < tmpResult.length; i++) {
-        // if(tmpResult[i].name.indexOf("Guru"))
-        console.log(
-          tmpResult[i].name.indexOf("Guru") > -1 ||
-            tmpResult[i].name.indexOf("Bohemian")
-        );
+        if (nftType === "guru") {
+          if (tmpResult[i].name.indexOf("Guru") > -1) result.push(tmpResult[i]);
+        } else {
+          if (
+            tmpResult[i].name.indexOf("Guru") > -1 ||
+            tmpResult[i].name.indexOf("Bohemian") > -1
+          )
+            result.push(tmpResult[i]);
+        }
       }
 
       for (let index = 0; index < tokens.length; index++) {
         const token = tokens[index];
 
-        tmpResult.map((element: any) => {
+        result.map((element: any) => {
           if (element.mint === token.mint)
             return lastResult.push({ ...token, ...element });
           return null;
