@@ -406,7 +406,7 @@ const StakingContent: FunctionComponent = () => {
 
       {(loadingInfos || loadingNft) && <div className="loading"></div>}
 
-      <UnstakedNFT
+      {/* <UnstakedNFT
         loading={loadingNft}
         title={"Staked"}
         NFTs={availableNFTs.filter((x) => x.isStaked)}
@@ -419,7 +419,7 @@ const StakingContent: FunctionComponent = () => {
         callback={handleUnstakeNFT}
         isStaking={true}
         getStakingInfo={getStakingInfos}
-      />
+      /> */}
 
       <ContentNFT
         loading={loadingNft}
