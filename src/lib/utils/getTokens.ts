@@ -81,9 +81,10 @@ export const getTokens = async (
   for (let index = 0; index < tokens.length; index++) {
     const element = tokens[index];
     if (nftType === "bohemian") {
-      if (
-        mint_list.find((x) => x.mint === element.mint.toString()) !== undefined
-      ) {
+      // if (
+      //   mint_list.find((x) => x.mint === element.mint.toString()) !== undefined
+      // )
+       {
         myArrayOfAccountsDatas.push({
           mint: element.mint,
           pubkey: element.pubkey,

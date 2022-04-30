@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import styled from "styled-components";
 import toast, { Toaster } from "react-hot-toast";
+import * as anchor from "@project-serum/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
   SignerWalletAdapter,
@@ -23,7 +24,7 @@ import { createTransferInstruction } from "../../lib/transferWoop/createTransfer
 import { stakingGlobals } from "../../constants/staking";
 
 import { getTokens } from "../../lib/utils/getTokens";
-import { stakeNft } from "../../lib/staking/stakeNft";
+import { lockNft } from "../../lib/staking/lockNft";
 import { unstakeNft } from "../../lib/staking/unstakeNft";
 import { claim } from "../../lib/staking/claim";
 import ContentNFT from "./ContentNFT";
@@ -68,10 +69,13 @@ const notify = (status: any) => {
     duration: 5000,
     position: "bottom-right",
   });
-}
+};
 
 const StakingContent: FunctionComponent = () => {
-  const { connection } = useConnection();
+  const rpcHost = process.env.REACT_APP_SOLANA_RPC_HOST!;
+  const connection = new anchor.web3.Connection(rpcHost);
+  // const { connection } = useConnection();
+  console.log("connection", connection);
   const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
 
   const [availableNFTs, setAvailableNFTs] = useState(new Array<any>());
@@ -319,45 +323,47 @@ const StakingContent: FunctionComponent = () => {
   ) => {
     setLoadingNFT(true);
 
-    // await stakeNft(
-    //   connection,
-    //   wallet!.adapter as SignerWalletAdapter,
-    //   sendTransaction,
-    //   farmId,
-    //   publicKey!,
-    //   mint,
-    //   source,
-    //   creator,
-    //   (e) => {
-    //     console.error(e);
-    //     setLoadingNFT(false);
-    //   },
-    //   () => {
-    //     refreshStakingData(farmId);
-    //   }
-    // );
-    await sendWoopToken();
-    const guruAddr = await getGuruAddress();
-    if (guruAddr) {
-      await burnMasterGuru(guruAddr);
-    } else {
-      notify("👏 You don't have any Guru NFT");
-      return;
-    }
-    // stakeBohemian()
-    // stakeBohemian(mint.toBase58());
-    burnMasterGuru(mint.toBase58());
+    await lockNft(
+      connection,
+      wallet!.adapter as SignerWalletAdapter,
+      sendTransaction,
+      farmId,
+      publicKey!,
+      mint,
+      source,
+      creator,
+      (e) => {
+        console.error(e);
+        setLoadingNFT(false);
+      },
+      () => {
+        refreshStakingData(farmId);
+      }
+    );
 
-    axios
-      .post("http://localhost:8008/update", { mintAddr: mint.toBase58() })
-      .then((res) => {
-        console.log(res);
-        notify("👏 Metadata successfully updated");
-      })
-      .catch((err) => {
-        console.log(err);
-        notify("😩 Metadata update failed");// we have to save this to db
-      });
+    
+    // await sendWoopToken();
+    // const guruAddr = await getGuruAddress();
+    // if (guruAddr) {
+    //   await burnMasterGuru(guruAddr);
+    // } else {
+    //   notify("👏 You don't have any Guru NFT");
+    //   return;
+    // }
+    // // stakeBohemian()
+    // // stakeBohemian(mint.toBase58());
+    // burnMasterGuru(mint.toBase58());
+
+    // axios
+    //   .post("http://localhost:8008/update", { mintAddr: mint.toBase58() })
+    //   .then((res) => {
+    //     console.log(res);
+    //     notify("👏 Metadata successfully updated");
+    //   })
+    //   .catch((err) => {
+    //     console.log(err);
+    //     notify("😩 Metadata update failed"); // we have to save this to db
+    //   });
   };
 
   const handleUnstakeNFT = async (farmId: PublicKey, mint: PublicKey) => {

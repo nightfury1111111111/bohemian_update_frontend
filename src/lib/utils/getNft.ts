@@ -39,8 +39,6 @@ export default async function getNft(
         args
       );
 
-      console.log("unsafeRes :", unsafeRes);
-
       if (unsafeRes.result.value) {
         const array = unsafeRes.result.value as AccountInfo<string[]>[];
         return { tokens, array };
@@ -107,7 +105,7 @@ export default async function getNft(
           if (tmpResult[i].name.indexOf("Guru") > -1) result.push(tmpResult[i]);
         } else {
           if (
-            tmpResult[i].name.indexOf("Guru") > -1 ||
+            // tmpResult[i].name.indexOf("Guru") > -1 ||
             tmpResult[i].name.indexOf("Bohemian") > -1
           )
             result.push(tmpResult[i]);

@@ -2,11 +2,18 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { SignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { IDL as bankIdl } from "./sdk/types/gem_bank";
 import { IDL as farmIdl } from "./sdk/types/gem_farm";
+import { IDL as vaultIdl } from "./sdk/types/nft_vault";
 import { stakingGlobals } from "../../constants/staking";
 import { BN, Wallet } from "@project-serum/anchor";
 import moment from "moment";
 import { mint_list } from "../../configs/mint_list";
-import { findFarmerPDA, GemBankClient, GemFarmClient } from "./sdk";
+import {
+  findFarmerPDA,
+  findNftVaultPDA,
+  GemBankClient,
+  GemFarmClient,
+  VaultClient,
+} from "./sdk";
 import { getNFTMetadataForMany, INFT } from "../utils/INFT";
 
 export const initGemBank = (conn: Connection, wallet: SignerWalletAdapter) => {
@@ -15,6 +22,15 @@ export const initGemBank = (conn: Connection, wallet: SignerWalletAdapter) => {
     wallet as unknown as Wallet,
     bankIdl as any,
     stakingGlobals.gemBankProgramId
+  );
+};
+
+export const initVault = (conn: Connection, wallet: SignerWalletAdapter) => {
+  return new VaultClient(
+    conn,
+    wallet as unknown as Wallet,
+    vaultIdl as any,
+    stakingGlobals.vaultProgramId
   );
 };
 
@@ -66,6 +82,24 @@ export const fetchFarmer = async (
   }
 };
 
+export const fetchVault = async (
+  connection: Connection,
+  wallet: SignerWalletAdapter,
+  vaultId: PublicKey,
+  identity: PublicKey
+): Promise<any> => {
+  const vault = await initVault(connection, wallet);
+  const [vaultPDA] = await findNftVaultPDA(vaultId, identity);
+  console.log("vault-pda : ", vaultPDA);
+  try {
+    const account = await vault!.fetchVaultAcc(vaultPDA);
+
+    return { identity: identity.toBase58(), account };
+  } catch (e) {
+    return null;
+  }
+};
+
 export const fetchVaultNFTs = async (
   connection: Connection,
   walletAdapter: SignerWalletAdapter,
@@ -109,19 +143,26 @@ export const getEarningsPerDay = (
     rarity = mint_list.find((x) => x.mint === mint.toBase58())?.reward ?? 1;
   }
 
-  let multiplier = 86400 * ((rarity < 1) ? 1 : rarity);
+  let multiplier = 86400 * (rarity < 1 ? 1 : rarity);
   const denominator = 1000;
-  const base_rate = (farmer.rewardA.fixedRate.promisedSchedule.baseRate.toNumber() / denominator) * multiplier;
+  const base_rate =
+    (farmer.rewardA.fixedRate.promisedSchedule.baseRate.toNumber() /
+      denominator) *
+    multiplier;
 
-  return (
-      Math.round(base_rate / (10 ** stakingGlobals.tokenDecimals))
-  );
+  return Math.round(base_rate / 10 ** stakingGlobals.tokenDecimals);
 };
 
-export const computeClaimableCoins = (farmer: any, earningsPerDay: number, num_staked: number) => {
+export const computeClaimableCoins = (
+  farmer: any,
+  earningsPerDay: number,
+  num_staked: number
+) => {
   if (farmer === null || farmer === undefined) return 0;
 
-  const lastUpdatedTs = moment(new Date(farmer.rewardA.fixedRate.lastUpdatedTs.toNumber() * 1000));
+  const lastUpdatedTs = moment(
+    new Date(farmer.rewardA.fixedRate.lastUpdatedTs.toNumber() * 1000)
+  );
   const now = moment();
   const diffInSec = now.diff(lastUpdatedTs, "seconds");
   const diffInCoins = diffInSec * (earningsPerDay / 86400) * num_staked;

@@ -30,6 +30,9 @@ const NFT = ({
     }, 1000);
     return () => clearInterval(interval);
   });
+  console.log("mint of nft", nft.mint.toBase58());
+  console.log("pubkey of nft", nft.pubkey.toBase58());
+  console.log("creator of nft", nft.creator.toBase58());
 
   return (
     <div> 
