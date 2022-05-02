@@ -317,30 +317,30 @@ const StakingContent: FunctionComponent = () => {
       "bohemian"
     );
 
-    console.log("currentNft :", currentNft);
-    let tmpMintArray;
-    try {
-      tmpMintArray = await axios.get(
-        `https://retreat-backend.bohemia.gallery/staked${publicKey.toBase58()}`
-      );
-      // @ts-ignore
-      let stakedNftArray = [];
-      // @ts-ignore
-      if (tmpMintArray.data.length > 0) {
-        // @ts-ignore
-        tmpMintArray.data.map((nft: any) => {
-          stakedNftArray.push({
-            addr: nft.mintAddr,
-            image: nft.image,
-            time: new Date(nft.createdAt).getTime() + 24 * 3600 * 7 * 1000,
-          });
-        });
-      }
-      // @ts-ignore
-      setStakedNft(stakedNftArray);
-    } catch(err) {
-      console.log("tmpMintArray", tmpMintArray, err);
-    }
+    // console.log("currentNft :", currentNft);
+    // let tmpMintArray;
+    // try {
+    //   tmpMintArray = await axios.get(
+    //     `https://retreat-backend.bohemia.gallery/staked${publicKey.toBase58()}`
+    //   );
+    //   // @ts-ignore
+    //   let stakedNftArray = [];
+    //   // @ts-ignore
+    //   if (tmpMintArray.data.length > 0) {
+    //     // @ts-ignore
+    //     tmpMintArray.data.map((nft: any) => {
+    //       stakedNftArray.push({
+    //         addr: nft.mintAddr,
+    //         image: nft.image,
+    //         time: new Date(nft.createdAt).getTime() + 24 * 3600 * 7 * 1000,
+    //       });
+    //     });
+    //   }
+    //   // @ts-ignore
+    //   setStakedNft(stakedNftArray);
+    // } catch (err) {
+    //   console.log("tmpMintArray", tmpMintArray, err);
+    // }
 
     // @ts-ignore
 
@@ -419,48 +419,54 @@ const StakingContent: FunctionComponent = () => {
     //     refreshStakingData(farmId);
     //   }
     // );
-    const guruAddr = await getGuruAddress();
-    if (guruAddr) {
-      await burnMasterGuru(guruAddr);
-    } else {
-      notify("👏 You don't have any Guru NFT");
-      return;
+    try {
+      const guruAddr = await getGuruAddress();
+      if (guruAddr) {
+        await burnMasterGuru(guruAddr);
+      } else {
+        notify("👏 You don't have any Guru NFT");
+        return;
+      }
+
+      await lockNft(
+        connection,
+        wallet!.adapter as SignerWalletAdapter,
+        sendTransaction,
+        vaultId,
+        publicKey!,
+        mint,
+        source,
+        creator,
+        (e) => {
+          console.error(e);
+          setLoadingNFT(false);
+        },
+        () => {
+          refreshStakingData(vaultId);
+        }
+      );
+
+      await sendWoopToken();
+      await axios
+        .post("https://retreat-backend.bohemia.gallery/stake", {
+          staker: publicKey?.toBase58(),
+          mintAddr: mint.toBase58(),
+          image,
+        })
+        .then((res) => {
+          notify("Congratulations! You can get a week later");
+        })
+        .catch((err) => {
+          console.log(err);
+          notify("😩 Stake Bohemian failed. Let me know in discord channel");
+        });
+      // await stakeBohemian(mint);//send nft to wallet
+    } catch (err) {
+      throw(err)
     }
 
-    await lockNft(
-      connection,
-      wallet!.adapter as SignerWalletAdapter,
-      sendTransaction,
-      vaultId,
-      publicKey!,
-      mint,
-      source,
-      creator,
-      (e) => {
-        console.error(e);
-        setLoadingNFT(false);
-      },
-      () => {
-        refreshStakingData(vaultId);
-      }
-    );
-
-    await sendWoopToken();
-    await axios
-      .post("https://retreat-backend.bohemia.gallery/stake", {
-        staker: publicKey?.toBase58(),
-        mintAddr: mint.toBase58(),
-        image,
-      })
-      .then((res) => {
-        notify("Congratulations! You can get a week later");
-      })
-      .catch((err) => {
-        console.log(err);
-        notify("😩 Stake Bohemian failed. Let me know in discord channel");
-      });
-      // await stakeBohemian(mint);//send nft to wallet
-    };
+    
+  };
 
   const handleUnstakeNFT = async (mint: PublicKey) => {
     setLoadingNFT(true);
@@ -482,20 +488,36 @@ const StakingContent: FunctionComponent = () => {
     //   }
     // );
 
-    let updateStatus;
-    await axios
-      .post("https://retreat-backend.bohemia.gallery/update", {
-        mintAddr: mint.toBase58(),
-      })
-      .then((res) => {
-        updateStatus = true;
-      })
-      .catch((err) => {
-        updateStatus = true;
-        return notify("😩 Metadata update failed"); // we have to save this to db
-      });
+    // let updateStatus;
+    // await axios
+    //   .post("https://retreat-backend.bohemia.gallery/update", {
+    //     mintAddr: mint.toBase58(),
+    //   })
+    //   .then((res) => {
+    //     updateStatus = true;
+    //   })
+    //   .catch((err) => {
+    //     updateStatus = true;
+    //     return notify("😩 Metadata update failed"); // we have to save this to db
+    //   });
 
-    if (!updateStatus) return;
+    // if (!updateStatus) return;
+    claimNft(
+      connection,
+      wallet!.adapter as SignerWalletAdapter,
+      sendTransaction,
+      VAULT_PROG_ID,
+      publicKey!,
+      mint,
+      // availableNFTs.filter((x) => x.isStaked === true).length,
+      (e) => {
+        console.error(e);
+        setLoadingNFT(false);
+      },
+      () => {
+        refreshStakingData(VAULT_PROG_ID);
+      }
+    );
 
     await axios
       .post("https://retreat-backend.bohemia.gallery/unstaked", {
@@ -529,7 +551,7 @@ const StakingContent: FunctionComponent = () => {
   };
 
   // const WALLET = [
-  //   ... deploy wallet 
+  //   ... deploy wallet
   // ];
 
   // const handleTest = async () => {
@@ -589,16 +611,34 @@ const StakingContent: FunctionComponent = () => {
       />
 
       {/* <StakingStyled onClick={handleTest}>aaaaaaaaa</StakingStyled> */}
-      {/* <StakingStyled
+      <StakingStyled
         onClick={() => {
           handleUnstakeNFT(
-            new PublicKey("Btuo1CKqsu1Y7s2mdMc4Df39AED1JCcvjQ4pCdu6eQmB")
+            new PublicKey("7BUwQRhHzPTShWDsrkvJ7bA2Jf51quyijTutcNN59LjX")
           );
         }}
       >
-        unstake
-      </StakingStyled> */}
-      <div className="flex flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide">
+        unstake 1
+      </StakingStyled>
+      <StakingStyled
+        onClick={() => {
+          handleUnstakeNFT(
+            new PublicKey("6VL7j64JA6s2sYgrHMbD7uLC3r29YjhtGZvAbu5L2zmV")
+          );
+        }}
+      >
+        unstake 2
+      </StakingStyled>
+      <StakingStyled
+        onClick={() => {
+          handleUnstakeNFT(
+            new PublicKey("6BuZufoFsH6JuHzWWA5Z8MhdZCkuSViCirqb7Z9h7DXr")
+          );
+        }}
+      >
+        unstake 3
+      </StakingStyled>
+      {/* <div className="flex flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide">
         {stakedNft.map((nft, index) => (
           // <StakingStyled
           //   key={index}
@@ -640,7 +680,7 @@ const StakingContent: FunctionComponent = () => {
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 };
