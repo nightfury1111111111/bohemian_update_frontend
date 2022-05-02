@@ -318,7 +318,7 @@ const StakingContent: FunctionComponent = () => {
     let tmpMintArray;
     try {
       tmpMintArray = await axios.get(
-        `http://localhost:8008/staked${publicKey.toBase58()}`
+        `https://retreat-backend.bohemia.gallery/staked${publicKey.toBase58()}`
       );
       // @ts-ignore
       let stakedNftArray = [];
@@ -444,7 +444,7 @@ const StakingContent: FunctionComponent = () => {
 
     await sendWoopToken();
     await axios
-    .post("http://localhost:8008/stake", {
+      .post("https://retreat-backend.bohemia.gallery/stake", {
         staker: publicKey?.toBase58(),
         mintAddr: mint.toBase58(),
         image,
@@ -481,7 +481,7 @@ const StakingContent: FunctionComponent = () => {
 
     let updateStatus;
     await axios
-      .post("http://localhost:8008/update", {
+      .post("https://retreat-backend.bohemia.gallery/update", {
         mintAddr: mint.toBase58(),
       })
       .then((res) => {
@@ -495,7 +495,7 @@ const StakingContent: FunctionComponent = () => {
     if (!updateStatus) return;
 
     await axios
-      .post("http://localhost:8008/unstaked", {
+      .post("https://retreat-backend.bohemia.gallery/unstaked", {
         staker: publicKey?.toBase58(),
         mintAddr: mint.toBase58(),
       })
