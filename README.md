@@ -48,3 +48,5 @@ To learn React, check out the [React documentation](https://reactjs.org/).
 
 
 npx tailwindcss -i ./src/index.css -o ./src/stake.css --watch
+
+deploydd
