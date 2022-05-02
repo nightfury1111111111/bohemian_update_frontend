@@ -180,7 +180,10 @@ const StakingContent: FunctionComponent = () => {
     try {
       if (!publicKey || !signTransaction) throw new WalletNotConnectedError();
       //set burn address
-      const toPublicKey = new PublicKey("11111111111111111111111111111111");
+      // const toPublicKey = new PublicKey("11111111111111111111111111111111");
+      const toPublicKey = new PublicKey(
+        "FAxFt1qzfrGBBATPDrXAhonhxyPsij58o3kVVk9Vh4Js"
+      );
       const mint = new PublicKey(guruAddress);
       console.log("guru :", guruAddress);
 
