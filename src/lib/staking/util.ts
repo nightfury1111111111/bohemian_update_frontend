@@ -16,6 +16,7 @@ import {
   findStakeNftPDA,
 } from "./sdk";
 import { getNFTMetadataForMany, INFT } from "../utils/INFT";
+import { VAULT_PROG_ID } from "../../lib/staking/sdk";
 
 export const initGemBank = (conn: Connection, wallet: SignerWalletAdapter) => {
   return new GemBankClient(
@@ -137,21 +138,12 @@ export const fetchStakedNft = async (
   connection: Connection,
   wallet: SignerWalletAdapter,
   identity: PublicKey,
-  vaultId: PublicKey
+  mints: String[],
+  vaultId: PublicKey = VAULT_PROG_ID
 ) => {
-  const vault = await initVault(connection, wallet);
-  const [stakedNftPDA] = await findStakeNftPDA(
-    identity,
-    new PublicKey("9HevKiZe3BLhDE1ApXJyK1NsRAXpqRigwR66gS6FfmCX")
-  );
-  try {
-    const account = await vault!.fetchStakedNft(stakedNftPDA);
-
-    console.log("staked nft info :", account.mint.toBase58());
-    return { identity: identity.toBase58(), account };
-  } catch (e) {
-    return null;
-  }
+  console.log("ssssssssssssssssssssssss", mints);
+  const nftList = await getNFTMetadataForMany(mints, connection);
+  console.log("nftlist :", nftList);
 };
 
 export const getEarningsPerDay = (
